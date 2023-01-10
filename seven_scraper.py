@@ -55,11 +55,11 @@ class Seven_Scraper(Spider):
                 "address": self.clean(address),
                 "email": self.clean(email)
             }
-            pprint(item)
+            yield item
         if response.xpath("//div[@class='show--more-text']"):
             next_url = self.iadfrance_nextPage(response)
             yield scrapy.Request(url=next_url, callback=self.parse_iadfrance)
-    
+
     def iadfrance_nextPage(self, response):
         self.iadfrance_info['page'] += 1
         page = self.iadfrance_info['page']
@@ -116,7 +116,8 @@ crawler = CrawlerProcess(settings={
     "ROBOTSTXT_OBEY": False,
     "LOG_LEVEL":logging.INFO,
     "USER_AGENT": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
-    "HTTPCACHE_ENABLED": True
+    "HTTPCACHE_ENABLED": True,
+    "FEEDS":{"data.csv":{'format':'csv'}}
 
 })
 crawler.crawl(Seven_Scraper)
