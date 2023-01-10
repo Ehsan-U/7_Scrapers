@@ -56,10 +56,10 @@ class Seven_Scraper(Spider):
 
     def start_requests(self):
         urls = {
-            # self.iadfrance_info['url']: self.parse_iadfrance,
-            # self.safti_info['url']: self.parse_safti,
-            # self.bskimmobilier_info['url']: self.parse_bskimmobilier,
-            # self.megagence_info['url']: self.parse_megagence,
+            self.iadfrance_info['url']: self.parse_iadfrance,
+            self.safti_info['url']: self.parse_safti,
+            self.bskimmobilier_info['url']: self.parse_bskimmobilier,
+            self.megagence_info['url']: self.parse_megagence,
             self.lafourmi_info['url']: self.parse_lafourmi,
         }
 
