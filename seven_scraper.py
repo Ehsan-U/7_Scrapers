@@ -42,7 +42,7 @@ class Seven_Scraper(Spider):
         'url': "https://www.megagence.com/nos-consultants",
         'page': 1
     }
-    
+
     # lafourmi-immo.com
     lafourmi_info = {
         'url': "https://www.lafourmi-immo.com/agents?f[geoloc]=bourges&f[radius]=500",
@@ -166,11 +166,11 @@ class Seven_Scraper(Spider):
             if data['features']:
                 for agent in data["features"]:
                     url = response.urljoin(agent["properties"].get("popup")[:-14])
-                    yield scrapy.Request(url, callback=self.parse_lafourmi_agent)
+                    yield scrapy.Request(url, callback=self.parse_lafourmi_helper)
                 next_page = self.get_nextPage(website=response.url)
                 yield scrapy.Request(url=next_page, callback=self.parse_lafourmi, headers=self.lafourmi_info['headers'])
 
-    def parse_lafourmi_agent(self, response):
+    def parse_lafourmi_helper(self, response):
         name = response.xpath("//h2[@class='ellipsis']/span/text()").get()
         phone = response.xpath("//div[@class='panel-body']//a[contains(@href, 'tel') and @rel]/@href").get()
         if phone:
