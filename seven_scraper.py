@@ -63,8 +63,7 @@ class Seven_Scraper(Spider):
     def iadfrance_nextPage(self, response):
         self.iadfrance_info['page'] += 1
         page = self.iadfrance_info['page']
-        self.iadfrance_info['group_ids'] += response.xpath(
-            "//div[contains(@class,'agent_card') and contains(@class,'onResult')]//a[contains(@data-gtm, 'email')]/@id").getall()
+        self.iadfrance_info['group_ids'] += response.xpath("//div[contains(@class,'agent_card') and contains(@class,'onResult')]//a[contains(@data-gtm, 'email')]/@id").getall()
         ignore_ids = "-".join(self.iadfrance_info['group_ids'])
         next_url = f"https://www.iadfrance.fr/trouver-un-conseiller/hauts-de-france?ignore_ids={ignore_ids}&page={page}"
         return next_url
