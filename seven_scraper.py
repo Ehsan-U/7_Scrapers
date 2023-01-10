@@ -59,6 +59,7 @@ class Seven_Scraper(Spider):
         if response.xpath("//div[@class='show--more-text']"):
             next_url = self.iadfrance_nextPage(response)
             yield scrapy.Request(url=next_url, callback=self.parse_iadfrance)
+    
     def iadfrance_nextPage(self, response):
         self.iadfrance_info['page'] += 1
         page = self.iadfrance_info['page']
@@ -91,6 +92,7 @@ class Seven_Scraper(Spider):
         if len(self.safti_info['uuids']) <= self.safti_info['limit']:
             payload = self.safti_nextPage()
             yield scrapy.FormRequest(url=response.url, callback=self.parse_safti, formdata=payload, headers=self.safti_info['safti_headers'])
+
     def safti_nextPage(self):
         self.safti_info['page'] += 1
         page = self.safti_info['page']
@@ -115,6 +117,7 @@ crawler = CrawlerProcess(settings={
     "LOG_LEVEL":logging.INFO,
     "USER_AGENT": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
     "HTTPCACHE_ENABLED": True
+
 })
 crawler.crawl(Seven_Scraper)
 crawler.start()
