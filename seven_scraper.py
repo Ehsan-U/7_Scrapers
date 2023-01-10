@@ -26,7 +26,7 @@ class Seven_Scraper(Spider):
             'Accept': '*/*',
             'host': 'api.safti.fr',
         },
-        "payload": {"page": '1', "limit": '9'},
+        "initial_payload": {"page": '1', "limit": '9'},
         'next': True,
         'uuids': set(),
         'limit': 4000
@@ -70,7 +70,7 @@ class Seven_Scraper(Spider):
 
         for url, parse_method in urls.items():
             if "safti.fr" in url:
-                yield scrapy.FormRequest(url, callback=parse_method, headers=self.safti_info['headers'], formdata=self.safti_info['payload'])
+                yield scrapy.FormRequest(url, callback=parse_method, headers=self.safti_info['headers'], formdata=self.safti_info['initial_payload'])
             elif "lafourmi-immo.com" in url:
                 yield scrapy.Request(url, callback=parse_method, headers=self.lafourmi_info['headers'])
             else:
@@ -83,7 +83,6 @@ class Seven_Scraper(Spider):
             address = agent.xpath(".//span[contains(@class,'agent_card_location')]/text()").get()
             # email not present on website (they are using forms)
             email = ''
-
             item = {
                 "name": self.clean(name),
                 "phone": self.clean(phone),
@@ -184,6 +183,8 @@ class Seven_Scraper(Spider):
             "email": self.clean(email)
         }
         yield item
+
+
 
     def get_nextPage(self, website, response=None):
 
