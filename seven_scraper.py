@@ -14,6 +14,7 @@ class Seven_Scraper(Spider):
         'page': 1,
         'group_ids': []
     }
+
     # safti.fr
     safti_info = {
         'url': "https://api.safti.fr/public_site/agent/search",
@@ -29,16 +30,19 @@ class Seven_Scraper(Spider):
         'uuids': set(),
         'limit': 4000
     }
+
     # bskimmobilier.com
     bskimmobilier_info = {
         'url': "https://bskimmobilier.com/commercial-immobilier",
         'page': 1
     }
+
     # megagence
     megagence_info = {
         'url': "https://www.megagence.com/nos-consultants",
         'page': 1
     }
+    
     # lafourmi-immo.com
     lafourmi_info = {
         'url': "https://www.lafourmi-immo.com/agents?f[geoloc]=bourges&f[radius]=500",
