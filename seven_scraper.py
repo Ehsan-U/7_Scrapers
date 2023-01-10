@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import scrapy
 from scrapy.spiders import Spider
 from scrapy.crawler import CrawlerProcess
@@ -9,13 +10,15 @@ class Seven_Scraper(Spider):
     name = 'seven_spiders'
     # iadfrance.fr
     iadfrance_info = {
+        'url': "https://www.iadfrance.fr/trouver-un-conseiller/hauts-de-france",
         'page': 1,
         'group_ids': []
     }
     # safti.fr
     safti_info = {
+        'url': "https://api.safti.fr/public_site/agent/search",
         'page': 1,
-        'safti_headers': {
+        'headers': {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer undefined',
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
@@ -28,26 +31,44 @@ class Seven_Scraper(Spider):
     }
     # bskimmobilier.com
     bskimmobilier_info = {
+        'url': "https://bskimmobilier.com/commercial-immobilier",
         'page': 1
     }
     # megagence
     megagence_info = {
+        'url': "https://www.megagence.com/nos-consultants",
         'page': 1
     }
+    # lafourmi-immo.com
+    lafourmi_info = {
+        'url': "https://www.lafourmi-immo.com/agents?f[geoloc]=bourges&f[radius]=500",
+        'page': 1,
+        "headers" : {
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
+          'host': 'www.lafourmi-immo.com',
+          'Content-Type': 'application/json',
+        }
+    }
+
 
 
     def start_requests(self):
         urls = {
-            "https://www.iadfrance.fr/trouver-un-conseiller/hauts-de-france":self.parse_iadfrance,
-            "https://api.safti.fr/public_site/agent/search":self.parse_safti,
-            "https://bskimmobilier.com/commercial-immobilier": self.parse_bskimmobilier,
-            "https://www.megagence.com/nos-consultants": self.parse_megagence,
+            # self.iadfrance_info['url']: self.parse_iadfrance,
+            # self.safti_info['url']: self.parse_safti,
+            # self.bskimmobilier_info['url']: self.parse_bskimmobilier,
+            # self.megagence_info['url']: self.parse_megagence,
+            self.lafourmi_info['url']: self.parse_lafourmi,
         }
 
         for url, parse_method in urls.items():
             if "safti.fr" in url:
                 payload = {"page": str(self.safti_info['page']), "limit": '9'}
-                yield scrapy.FormRequest(url, callback=parse_method, headers=self.safti_info['safti_headers'], formdata=payload)
+                yield scrapy.FormRequest(url, callback=parse_method, headers=self.safti_info['headers'], formdata=payload)
+            elif "lafourmi-immo.com" in url:
+                yield scrapy.Request(url, callback=parse_method, headers=self.lafourmi_info['headers'])
             else:
                 yield scrapy.Request(url, callback= parse_method)
 
@@ -92,7 +113,7 @@ class Seven_Scraper(Spider):
                     yield item
         if len(self.safti_info['uuids']) <= self.safti_info['limit']:
             payload = self.get_nextPage(website=response.url)
-            yield scrapy.FormRequest(url=response.url, callback=self.parse_safti, formdata=payload, headers=self.safti_info['safti_headers'])
+            yield scrapy.FormRequest(url=response.url, callback=self.parse_safti, formdata=payload, headers=self.safti_info['safti_headers'], dont_filter=True)
 
 
     def parse_bskimmobilier(self, response):
@@ -131,7 +152,37 @@ class Seven_Scraper(Spider):
             yield scrapy.Request(url=next_page, callback=self.parse_megagence)
 
 
+    def parse_lafourmi(self, response):
+        body = response.body
+        try:
+            data = json.loads(body)
+        except Exception as e:
+            print(e)
+        else:
+            if data['features']:
+                for agent in data["features"]:
+                    url = response.urljoin(agent["properties"].get("popup")[:-14])
+                    yield scrapy.Request(url, callback=self.parse_lafourmi_agent)
+                next_page = self.get_nextPage(website=response.url)
+                yield scrapy.Request(url=next_page, callback=self.parse_lafourmi, headers=self.lafourmi_info['headers'])
+
+    def parse_lafourmi_agent(self, response):
+        name = response.xpath("//h2[@class='ellipsis']/span/text()").get()
+        phone = response.xpath("//div[@class='panel-body']//a[contains(@href, 'tel') and @rel]/@href").get()
+        if phone:
+            phone = phone[4:]
+        address = response.xpath("//p[@class='ellipsis small geoloc']/text()").getall()
+        email = ''
+        item = {
+            "name": self.clean(name),
+            "phone": self.clean(phone),
+            "address": self.clean(address),
+            "email": self.clean(email)
+        }
+        yield item
+
     def get_nextPage(self, website, response=None):
+
         if "iadfrance.fr" in website:
             self.iadfrance_info['page'] += 1
             page = self.iadfrance_info['page']
@@ -159,6 +210,14 @@ class Seven_Scraper(Spider):
             next_page = f'https://www.megagence.com/nos-consultants?page={str(page)}'
             return next_page
 
+        elif "lafourmi-immo.com" in website:
+            self.lafourmi_info['page'] +=1
+            page = self.lafourmi_info['page']
+            next_page = f"https://www.lafourmi-immo.com/agents?f[geoloc]=bourges&f[radius]=500?page={str(page)}"
+            return next_page
+
+
+
     @staticmethod
     def clean(data):
         if type(data) == list:
@@ -174,7 +233,7 @@ crawler = CrawlerProcess(settings={
     "ROBOTSTXT_OBEY": False,
     "LOG_LEVEL":logging.DEBUG,
     "USER_AGENT": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
-    "HTTPCACHE_ENABLED": True,
+    # "HTTPCACHE_ENABLED": True,
     "FEEDS":{"data.csv":{'format':'csv'}}
 
 })
