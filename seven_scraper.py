@@ -114,9 +114,6 @@ crawler = CrawlerProcess(settings={
     "ROBOTSTXT_OBEY": False,
     "LOG_LEVEL":logging.INFO,
     "USER_AGENT": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
-    "DOWNLOADER_MIDDLEWARES" : {
-        'scrapy_selenium.SeleniumMiddleware': 800
-    },
     "HTTPCACHE_ENABLED": True
 })
 crawler.crawl(Seven_Scraper)
