@@ -26,6 +26,7 @@ class Seven_Scraper(Spider):
             'Accept': '*/*',
             'host': 'api.safti.fr',
         },
+        "payload": {"page": '1', "limit": '9'},
         'next': True,
         'uuids': set(),
         'limit': 4000
@@ -69,8 +70,7 @@ class Seven_Scraper(Spider):
 
         for url, parse_method in urls.items():
             if "safti.fr" in url:
-                payload = {"page": str(self.safti_info['page']), "limit": '9'}
-                yield scrapy.FormRequest(url, callback=parse_method, headers=self.safti_info['headers'], formdata=payload)
+                yield scrapy.FormRequest(url, callback=parse_method, headers=self.safti_info['headers'], formdata=self.safti_info['payload'])
             elif "lafourmi-immo.com" in url:
                 yield scrapy.Request(url, callback=parse_method, headers=self.lafourmi_info['headers'])
             else:
