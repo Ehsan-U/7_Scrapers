@@ -57,15 +57,20 @@ class Seven_Scraper(Spider):
         }
     }
 
+    # efficity.com
+    efficity_info = {
+        'url': "https://www.efficity.com/consultants-immobiliers/liste/",
+    }
 
 
     def start_requests(self):
         urls = {
-            self.iadfrance_info['url']: self.parse_iadfrance,
-            self.safti_info['url']: self.parse_safti,
-            self.bskimmobilier_info['url']: self.parse_bskimmobilier,
-            self.megagence_info['url']: self.parse_megagence,
-            self.lafourmi_info['url']: self.parse_lafourmi,
+            # self.iadfrance_info['url']: self.parse_iadfrance,
+            # self.safti_info['url']: self.parse_safti,
+            # self.bskimmobilier_info['url']: self.parse_bskimmobilier,
+            # self.megagence_info['url']: self.parse_megagence,
+            # self.lafourmi_info['url']: self.parse_lafourmi,
+            self.efficity_info['url']: self.parse_efficity,
         }
 
         for url, parse_method in urls.items():
@@ -168,7 +173,6 @@ class Seven_Scraper(Spider):
                     yield scrapy.Request(url, callback=self.parse_lafourmi_helper)
                 next_page = self.get_nextPage(website=response.url)
                 yield scrapy.Request(url=next_page, callback=self.parse_lafourmi, headers=self.lafourmi_info['headers'])
-
     def parse_lafourmi_helper(self, response):
         name = response.xpath("//h2[@class='ellipsis']/span/text()").get()
         phone = response.xpath("//div[@class='panel-body']//a[contains(@href, 'tel') and @rel]/@href").get()
@@ -176,6 +180,24 @@ class Seven_Scraper(Spider):
             phone = phone[4:]
         address = response.xpath("//p[@class='ellipsis small geoloc']/text()").getall()
         email = ''
+        item = {
+            "name": self.clean(name),
+            "phone": self.clean(phone),
+            "address": self.clean(address),
+            "email": self.clean(email)
+        }
+        yield item
+
+
+    def parse_efficity(self, response):
+        for agent in response.xpath("//a[@data-gtm-category='EntreeConsultant']"):
+            name = agent.xpath("./p[1]/text()").get()
+            address = agent.xpath("./p[2]/text()").get()
+            url = response.urljoin(agent.xpath("./@href").get())
+            yield scrapy.Request(url, callback=self.parse_efficity_helper, cb_kwargs=dict(name=name, address=address))
+    def parse_efficity_helper(self, response, name, address):
+        phone = response.xpath("//a[contains(@href, 'tel:+') and not(@class)]/text()").get()
+        email = response.xpath("//a[contains(@href, 'mail') and not(@class)]/text()").get()
         item = {
             "name": self.clean(name),
             "phone": self.clean(phone),
