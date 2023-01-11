@@ -279,7 +279,7 @@ class Seven_Scraper(Spider):
         elif "proprietes-privees.com" in website:
             self.proprietes_privees_info['page'] +=1
             page = self.proprietes_privees_info['page']
-            next_page = f"https://www.proprietes-privees.com/negociateur/get-mandatary?page={page}&department=0"
+            next_page = f"https://www.proprietes-privees.com/negociateur/get-mandatary?page={str(page)}&department=0"
             return next_page
 
 
