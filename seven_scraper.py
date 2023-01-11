@@ -62,15 +62,21 @@ class Seven_Scraper(Spider):
         'url': "https://www.efficity.com/consultants-immobiliers/liste/",
     }
 
+    # proprietes-privees.com
+    proprietes_privees_info = {
+        'url': "https://www.proprietes-privees.com/negociateur/get-mandatary?page=1&department=0",
+        "page": 1
+    }
 
     def start_requests(self):
         urls = {
-            # self.iadfrance_info['url']: self.parse_iadfrance,
-            # self.safti_info['url']: self.parse_safti,
-            # self.bskimmobilier_info['url']: self.parse_bskimmobilier,
-            # self.megagence_info['url']: self.parse_megagence,
-            # self.lafourmi_info['url']: self.parse_lafourmi,
+            self.iadfrance_info['url']: self.parse_iadfrance,
+            self.safti_info['url']: self.parse_safti,
+            self.bskimmobilier_info['url']: self.parse_bskimmobilier,
+            self.megagence_info['url']: self.parse_megagence,
+            self.lafourmi_info['url']: self.parse_lafourmi,
             self.efficity_info['url']: self.parse_efficity,
+            self.proprietes_privees_info['url']: self.parse_proprietes_privees,
         }
 
         for url, parse_method in urls.items():
@@ -207,6 +213,33 @@ class Seven_Scraper(Spider):
         yield item
 
 
+    def parse_proprietes_privees(self, response):
+        body = response.body
+        data = json.loads(body)
+        if data['data']:
+            for agent in data['data']:
+                name = agent['first_name'] + ' ' + agent['last_name']
+                address = agent['zone']
+                alias = agent['alias']
+                url = f"https://www.proprietes-privees.com/negociateur/{alias}"
+                yield scrapy.Request(url, callback=self.parse_proprietes_privees_helper, cb_kwargs=dict(name=name, address=address))
+            next_page = self.get_nextPage(website=response.url)
+            yield scrapy.Request(url=next_page, callback=self.parse_proprietes_privees)
+    def parse_proprietes_privees_helper(self, response, name, address):
+        phone = response.xpath("//a[@id='phoneIcon']/@data-content").get()
+        if phone:
+            phone = re.search(r'(?:callto:)(.*?)(?:")', phone).group(1)
+        email = ''
+        item = {
+            "name": self.clean(name),
+            "phone": self.clean(phone),
+            "address": self.clean(address),
+            "email": self.clean(email)
+        }
+        yield item
+
+
+
 
     def get_nextPage(self, website, response=None):
 
@@ -243,6 +276,11 @@ class Seven_Scraper(Spider):
             next_page = f"https://www.lafourmi-immo.com/agents?f[geoloc]=bourges&f[radius]=500?page={str(page)}"
             return next_page
 
+        elif "proprietes-privees.com" in website:
+            self.proprietes_privees_info['page'] +=1
+            page = self.proprietes_privees_info['page']
+            next_page = f"https://www.proprietes-privees.com/negociateur/get-mandatary?page={page}&department=0"
+            return next_page
 
 
     @staticmethod
