@@ -119,7 +119,7 @@ class Iadfrance_Scraper(Spider, Controller):
 
 
 
-class Safti_Scraper(Spider, Controller):
+class Safti_Scraper(Spider):
     name = "safti_spider"
 
     safti_info = {
