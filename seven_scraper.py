@@ -71,12 +71,12 @@ class Seven_Scraper(Spider):
     def start_requests(self):
         urls = {
             self.iadfrance_info['url']: self.parse_iadfrance,
-            self.safti_info['url']: self.parse_safti,
-            self.bskimmobilier_info['url']: self.parse_bskimmobilier,
-            self.megagence_info['url']: self.parse_megagence,
-            self.lafourmi_info['url']: self.parse_lafourmi,
-            self.efficity_info['url']: self.parse_efficity,
-            self.proprietes_privees_info['url']: self.parse_proprietes_privees,
+            # self.safti_info['url']: self.parse_safti,
+            # self.bskimmobilier_info['url']: self.parse_bskimmobilier,
+            # self.megagence_info['url']: self.parse_megagence,
+            # self.lafourmi_info['url']: self.parse_lafourmi,
+            # self.efficity_info['url']: self.parse_efficity,
+            # self.proprietes_privees_info['url']: self.parse_proprietes_privees,
         }
 
         for url, parse_method in urls.items():
@@ -249,7 +249,7 @@ class Seven_Scraper(Spider):
             self.iadfrance_info['group_ids'] += response.xpath(
                 "//div[contains(@class,'agent_card') and contains(@class,'onResult')]//a[contains(@data-gtm, 'email')]/@id").getall()
             ignore_ids = "-".join(self.iadfrance_info['group_ids'])
-            next_page = f"https://www.iadfrance.fr/trouver-un-conseiller/hauts-de-france?ignore_ids={ignore_ids}&page={page}"
+            next_page = f"https://www.iadfrance.fr/trouver-un-conseiller/hauts-de-france?ignore_ids={ignore_ids}&page={str(page)}"
             return next_page
 
         elif "safti.fr" in website:
