@@ -5,7 +5,6 @@ import scrapy
 from scrapy.spiders import Spider
 from scrapy.crawler import CrawlerProcess
 from argparse import ArgumentParser
-from pprint import pprint
 
 
 class Controller():
@@ -282,7 +281,6 @@ class Lafourmi_Scraper(Spider, Controller):
         if response.xpath("//a[contains(@href,'/agents/')]"):
             next_page = self.get_nextPage()
             yield scrapy.Request(url=next_page, callback=self.parse_lafourmi, headers=self.lafourmi_info['headers'])
-
 
     def parse_lafourmi_helper(self, response):
         name = response.xpath("//h2[@class='ellipsis']/span/text()").get()
