@@ -5,7 +5,7 @@ import scrapy
 from scrapy.spiders import Spider
 from scrapy.crawler import CrawlerProcess
 from argparse import ArgumentParser
-
+from pprint import pprint
 
 
 class Controller():
@@ -259,10 +259,10 @@ class Lafourmi_Scraper(Spider, Controller):
     name = 'lafourmi_spider'
 
     lafourmi_info = {
-        'url': "https://www.lafourmi-immo.com/agents?f[geoloc]=bourges&f[radius]=500",
+        'url': "https://www.lafourmi-immo.com/agents?f%5Bgeoloc%5D=bourges&f%5Bradius%5D=500",
         'page': 1,
         "headers" : {
-          'Accept': 'application/json',
+          'Accept': '*/*',
           'X-Requested-With': 'XMLHttpRequest',
           'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
           'host': 'www.lafourmi-immo.com',
@@ -275,21 +275,14 @@ class Lafourmi_Scraper(Spider, Controller):
         url = self.lafourmi_info['url']
         yield scrapy.Request(url, callback=self.parse_lafourmi, headers=self.lafourmi_info['headers'])
 
-
     def parse_lafourmi(self, response):
-        body = response.body
-        try:
-            data = json.loads(body)
-        except Exception as e:
-            print(e)
-        else:
-            if data['features']:
-                for agent in data["features"]:
-                    url = response.urljoin(agent["properties"].get("popup")[:-14])
-                    yield scrapy.Request(url, callback=self.parse_lafourmi_helper)
-                next_page = self.get_nextPage()
-                yield scrapy.Request(url=next_page, callback=self.parse_lafourmi, headers=self.lafourmi_info['headers'])
-    
+        for agent in response.xpath("//a[contains(@href,'/agents/')]/@href").getall():
+            url = response.urljoin(agent)
+            yield scrapy.Request(url, callback=self.parse_lafourmi_helper)
+        if response.xpath("//a[contains(@href,'/agents/')]"):
+            next_page = self.get_nextPage()
+            yield scrapy.Request(url=next_page, callback=self.parse_lafourmi, headers=self.lafourmi_info['headers'])
+
 
     def parse_lafourmi_helper(self, response):
         name = response.xpath("//h2[@class='ellipsis']/span/text()").get()
@@ -306,11 +299,10 @@ class Lafourmi_Scraper(Spider, Controller):
         }
         yield item
 
-
     def get_nextPage(self):
         self.lafourmi_info['page'] +=1
         page = self.lafourmi_info['page']
-        next_page = f"https://www.lafourmi-immo.com/agents?f[geoloc]=bourges&f[radius]=500?page={str(page)}"
+        next_page = f"https://www.lafourmi-immo.com/agents?f%5Bgeoloc%5D=bourges&f%5Bradius%5D=500&page={str(page)}"
         return next_page
 
 
