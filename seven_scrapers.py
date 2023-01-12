@@ -22,7 +22,7 @@ class Controller():
 
     def take_args(self):
         parser = ArgumentParser()
-        parser.add_argument('-s', '--spider', dest='spider', help='Give the spider spider name', default=None)
+        parser.add_argument('-s', '--spider', dest='spider', help='Give the spider name', default=None)
         values = parser.parse_args()
         args_dict = vars(values)
         return args_dict
@@ -119,7 +119,7 @@ class Iadfrance_Scraper(Spider, Controller):
 
 
 
-class Safti_Scraper(Spider, Controller):
+class Safti_Scraper(Spider):
     name = "safti_spider"
 
     safti_info = {
