@@ -5,6 +5,9 @@ import scrapy
 from scrapy.spiders import Spider
 from scrapy.crawler import CrawlerProcess
 from argparse import ArgumentParser
+from pprint import pprint
+from scrapy.spidermiddlewares.httperror import HttpError
+
 
 
 class Controller():
@@ -38,9 +41,12 @@ class Controller():
         if spider_name:
             spider_class = self.spiders[spider_name]
             crawler = CrawlerProcess(settings={
+                "HTTPCACHE_ENABLED": True,
+                "URLLENGTH_LIMIT": 10000,
                 "REQUEST_FINGERPRINTER_IMPLEMENTATION": '2.7',
                 "ROBOTSTXT_OBEY": False,
-                "LOG_LEVEL":logging.DEBUG,
+                # "LOG_LEVEL": logging.DEBUG,
+                "LOG_ENABLED": False,
                 "USER_AGENT": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36',
                 "FEEDS":{f"{spider_name}.csv":{'format':'csv'}}
 
@@ -64,59 +70,129 @@ class Iadfrance_Scraper(Spider, Controller):
     name = "iadfrance_spider"
 
     iadfrance_info = {
-        'urls': [
-            "https://www.iadfrance.fr/trouver-un-conseiller/hauts-de-france",
-            "https://www.iadfrance.fr/trouver-un-conseiller/grand-est",
-            "https://www.iadfrance.fr/trouver-un-conseiller/bourgogne-franche-comte",
-            "https://www.iadfrance.fr/trouver-un-conseiller/auvergne-rhone-alpes",
-            "https://www.iadfrance.fr/trouver-un-conseiller/provence-alpes-cote-dazur",
-            "https://www.iadfrance.fr/trouver-un-conseiller/occitanie",
-            "https://www.iadfrance.fr/trouver-un-conseiller/nouvelle-aquitaine",
-            "https://www.iadfrance.fr/trouver-un-conseiller/centre-val-de-loire",
-            "https://www.iadfrance.fr/trouver-un-conseiller/pays-de-la-loire",
-            "https://www.iadfrance.fr/trouver-un-conseiller/normandie",
-            "https://www.iadfrance.fr/trouver-un-conseiller/bretagne",
-            "https://www.iadfrance.fr/trouver-un-conseiller/ile-de-france",
-            ],
-        'page': 1,
-        'group_ids': []
+        'urls': {
+            "https://www.iadfrance.fr/trouver-un-conseiller/hauts-de-france": {
+                'page':1,
+                'group_ids': [],
+            },
+            "https://www.iadfrance.fr/trouver-un-conseiller/grand-est": {
+                'page':1,
+                'group_ids': [],
+            },
+            "https://www.iadfrance.fr/trouver-un-conseiller/bourgogne-franche-comte": {
+                'page': 1,
+                'group_ids': [],
+            },
+            "https://www.iadfrance.fr/trouver-un-conseiller/auvergne-rhone-alpes": {
+                'page': 1,
+                'group_ids': [],
+            },
+            "https://www.iadfrance.fr/trouver-un-conseiller/provence-alpes-cote-dazur": {
+                'page': 1,
+                'group_ids': [],
+            },
+            "https://www.iadfrance.fr/trouver-un-conseiller/occitanie": {
+                'page': 1,
+                'group_ids': [],
+            },
+            "https://www.iadfrance.fr/trouver-un-conseiller/nouvelle-aquitaine": {
+                'page': 1,
+                'group_ids': [],
+            },
+            "https://www.iadfrance.fr/trouver-un-conseiller/centre-val-de-loire": {
+                'page': 1,
+                'group_ids': [],
+            },
+            "https://www.iadfrance.fr/trouver-un-conseiller/pays-de-la-loire": {
+                'page': 1,
+                'group_ids': [],
+            },
+            "https://www.iadfrance.fr/trouver-un-conseiller/normandie": {
+                'page': 1,
+                'group_ids': [],
+            },
+            "https://www.iadfrance.fr/trouver-un-conseiller/bretagne": {
+                'page': 1,
+                'group_ids': [],
+            },
+            "https://www.iadfrance.fr/trouver-un-conseiller/ile-de-france": {
+                'page': 1,
+                'group_ids': [],
+            },
+        },
+        'headers':{
+          'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'host': 'www.iadfrance.fr',
+          'Referer': 'https://www.iadfrance.fr'
+        },
     }
 
 
     def start_requests(self):
-        for url in self.iadfrance_info['urls']:
-            yield scrapy.Request(url, callback=self.parse_iadfrance)
+        for url in self.iadfrance_info['urls'].keys():
+            yield scrapy.Request(url, callback=self.parse_iadfrance, cb_kwargs={'first_req':True, 'base_url':url})
+
+    def parse_iadfrance(self, response, first_req, base_url):
+        if first_req:
+            for agent in response.xpath("//div[contains(@class,'agent_card') and contains(@class,'onResult')]"):
+                # update grp_ids for each link
+                group_id = agent.xpath(".//a[contains(@data-gtm,'email')]/@id").get()
+                self.iadfrance_info['urls'][base_url]['group_ids'].append(group_id)
+
+                name = agent.xpath(".//a[contains(@class,'agent_name')]/text()").get()
+                phone = agent.xpath(".//button[@id='adphone']/@data-phone").get()
+                address = agent.xpath(".//span[contains(@class,'agent_card_location')]/text()").get()
+                # email not present on website (they are using forms)
+                email = ''
+                item = {
+                    "name": self.clean(name),
+                    "phone": self.clean(phone),
+                    "address": self.clean(address),
+                    "email": self.clean(email)
+                }
+                yield item
+                ignore_ids, next_page = self.get_nextPage(base_url)
+                yield scrapy.FormRequest(url=base_url, method='GET', callback=self.parse_iadfrance, formdata={"ignore_ids":ignore_ids, "page":str(next_page)},cb_kwargs={'first_req': None, "base_url":base_url},headers=self.iadfrance_info['headers'])
+        else:
+            body = response.body
+            data = json.loads(body)
+            if data.get('html'):
+                sel = scrapy.Selector(text=data.get('html'))
+                for agent in sel.css(".agent_card.flex.column.items-center.justify-center.onResult"):
+                    # update grp_ids for each link
+                    group_id = agent.css(".agent-contact-form.full-width.i-btn.i-btn--secondary::attr('id')").get().strip()
+                    self.iadfrance_info['urls'][base_url]['group_ids'].append(group_id)
+
+                    name = agent.css('.text-biggy.text-weight-bolder.text-none.agent_name::text').get()
+                    phone = agent.css("a[id='adphone']::attr('data-phone')").get()
+                    address = agent.css(".text-darkblue.text-biggy.text-none.agent_card_location::text").getall()[-1]
+                    email = ''
+                    item = {
+                        "name": self.clean(name),
+                        "phone": self.clean(phone),
+                        "address": self.clean(address),
+                        "email": self.clean(email)
+                    }
+                    yield item
+                if data.get("nextUrl"):
+                    ignore_ids, next_page = self.get_nextPage(base_url)
+                    yield scrapy.FormRequest(url=base_url, method='GET', callback=self.parse_iadfrance, formdata={"ignore_ids":ignore_ids, "page":str(next_page)}, cb_kwargs={'first_req':None, "base_url":base_url}, headers=self.iadfrance_info['headers'], errback=self.handle_err)
 
 
-    def parse_iadfrance(self, response):
-        for agent in response.xpath("//div[contains(@class,'agent_card') and contains(@class,'onResult')]"):
-            name = agent.xpath(".//a[contains(@class,'agent_name')]/text()").get()
-            phone = agent.xpath(".//button[@id='adphone']/@data-phone").get()
-            address = agent.xpath(".//span[contains(@class,'agent_card_location')]/text()").get()
-            # email not present on website (they are using forms)
-            email = ''
-            item = {
-                "name": self.clean(name),
-                "phone": self.clean(phone),
-                "address": self.clean(address),
-                "email": self.clean(email)
-            }
-            yield item
-        if response.xpath("//div[@class='show--more-text']"):
-            next_page = self.get_nextPage(response=response)
-            yield scrapy.Request(url=next_page, callback=self.parse_iadfrance)
+    def get_nextPage(self, base_url):
+        self.iadfrance_info['urls'][base_url]['page'] +=1
+        page = self.iadfrance_info['urls'][base_url]['page']
+        ignore_ids = "-".join(self.iadfrance_info['urls'][base_url]['group_ids'])
+        return ignore_ids, page
 
 
-    def get_nextPage(self, response):
-        self.iadfrance_info['page'] += 1
-        page = self.iadfrance_info['page']
-        self.iadfrance_info['group_ids'] += response.xpath(
-            "//div[contains(@class,'agent_card') and contains(@class,'onResult')]//a[contains(@data-gtm, 'email')]/@id").getall()
-        ignore_ids = "-".join(self.iadfrance_info['group_ids'])
-        next_page = f"https://www.iadfrance.fr/trouver-un-conseiller/hauts-de-france?ignore_ids={ignore_ids}&page={str(page)}"
-        return next_page
-
-
+    def handle_err(self, failure):
+        if failure.check(HttpError):
+            pass
+            
 
 class Safti_Scraper(Spider):
     name = "safti_spider"
