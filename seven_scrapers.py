@@ -5,7 +5,6 @@ import scrapy
 from scrapy.spiders import Spider
 from scrapy.crawler import CrawlerProcess
 from argparse import ArgumentParser
-from pprint import pprint
 from scrapy.spidermiddlewares.httperror import HttpError
 
 
